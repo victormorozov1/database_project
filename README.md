@@ -48,13 +48,81 @@
    ссылаться на модель **Parser** вне зависимости от типа парсера. Но 
    модели **BS4Parser** и **RegexpParser** "болтаются" отдельно, что мне
    не очень нравиться.
-3) **Rule** - эта сущность содержит всю информацию о том, что нужно
+   **Rule** - эта сущность содержит всю информацию о том, что нужно
    сделать, а именно какую ручку дернуть (**Endpoint**) и как 
    распарсить полученные данные (ноль, один, 
    или несколько парсеров, через которые нужно прогнать данные)
-4) **User** - пользователи.
+   **User** - пользователи.
    
    Содержит необходимую инфу о пользователе.
 
    Пользователи могут добавлять правила в избранное
-   
+3) ### Логическая схема
+   ![alt text](images/логическая.jpg "Title")
+4) ### Физическая схема
+   ![alt text](images/физическая.jpg "Title")
+5)
+
+Получить все парсеры, у которых значение поля list_input равно True:
+```sql
+SELECT * 
+FROM bs4_parser
+WHERE list_input = TRUE;
+```
+
+Получить имена и идентификаторы правил, которые ссылаются на конкретный endpoint:
+```sql
+SELECT rule.id, rule.endpoint_id, endpoint.url
+FROM rule
+JOIN endpoint ON rule.endpoint_id = endpoint.id;
+```
+
+Получить правила и связанных с ними пользователей:
+```sql
+SELECT rule.id, rule_user.user_id
+FROM rule_user
+JOIN rule ON rule_user.rule_id = rule.id;
+```
+
+Получить все URL и хедеры из таблицы endpoint, где параметры params содержат определенное значение:
+```sql
+SELECT url, headers
+FROM endpoint
+WHERE headers->>'h1' = 'some_val';
+```
+
+Получить все правила, у которых количество парсеров больше 2х
+```sql
+SELECT rule.id, COUNT(parser_rule.parser_id) AS parser_count
+FROM rule
+JOIN parser_rule ON rule.id = parser_rule.rule_id
+GROUP BY rule.id
+HAVING COUNT(parser_rule.parser_id) > 2;
+```
+
+Вывести все различные адреса
+```sql
+SELECT DISTINCT endpoint.url
+FROM endpoint
+ORDER BY endpoint.url;
+```
+
+Вывести всю инфу про пользователей и их правила
+```sql
+SELECT * from db_user 
+LEFT JOIN rule_user 
+ON db_user.id = rule_user.user_id
+LEFT JOIN rule
+ON rule.id = rule_user.rule_id;
+```
+
+Вывести id пользователей и количество правил у них
+```sql
+SELECT db_user.id, COUNT(*) from db_user 
+LEFT JOIN rule_user 
+ON db_user.id = rule_user.user_id
+LEFT JOIN rule
+ON rule.id = rule_user.rule_id
+GROUP BY db_user.id
+;
+```
